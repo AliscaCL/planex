@@ -1,0 +1,9 @@
+# Python >= 3.11（deepagents 要求）。建议用 uv 在独立 venv 安装：
+#   uv venv --python 3.13 .venv
+#   uv pip install --python .venv/bin/python -r requirements.txt
+# 注：deepagents 若镜像源缺失，可从 PyPI 直链 wheel 安装。
+deepagents==0.6.10
+langchain-anthropic>=0.3
+fastapi>=0.116
+uvicorn[standard]>=0.30
+sse-starlette>=2.0
