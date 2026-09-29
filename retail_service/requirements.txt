@@ -1,0 +1,6 @@
+# Python >= 3.13（planex-core 要求）。安装方式见 README.md。
+# planex-core 与 retail_skill 来自 Innocellence-Gaias-Hub（本地路径安装），其余为 Web 依赖：
+fastapi>=0.116
+uvicorn[standard]>=0.30
+sse-starlette>=2.0
+httpx>=0.28

@@ -1,0 +1,7 @@
+.venv/
+sessions/
+install.log
+docker_build.log
+server.log
+__pycache__/
+*.pyc

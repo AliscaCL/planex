@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>零售客服 Agent · 智能销售服务系统</title>
+<style>
+:root{
+  --primary:#1a56db; --primary-dark:#1e3a5f; --primary-light:#e8edfb;
+  --accent:#0e9f6e; --accent-light:#e6f7f0;
+  --danger:#e02424; --danger-light:#fde8e8;
+  --warning:#d97706; --warning-light:#fef3c7;
+  --purple:#7c3aed; --purple-light:#f3e8ff;
+  --g50:#f9fafb; --g100:#f3f4f6; --g200:#e5e7eb; --g300:#d1d5db;
+  --g400:#9ca3af; --g500:#6b7280; --g600:#4b5563;
+  --g700:#374151; --g800:#1f2937; --g900:#111827;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC","Helvetica Neue",Arial,sans-serif;background:#1a1a2e;
+  height:100vh;display:flex;align-items:center;justify-content:center;color:var(--g800);}
+#chat{width:min(96vw,1000px);height:min(96vh,920px);background:#fff;border-radius:18px;overflow:hidden;
+  box-shadow:0 24px 70px rgba(0,0,0,.45);display:flex;flex-direction:column;}
+
+/* header */
+#head{background:linear-gradient(135deg,#0f1b33 0%,#1a3a6b 45%,#2563eb 100%);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;}
+#head .logo{width:42px;height:42px;border-radius:11px;flex-shrink:0;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:20px;}
+#head .h-title{font-size:16px;font-weight:800;letter-spacing:.5px;}
+#head .h-sub{font-size:12px;opacity:.75;margin-top:2px;}
+#head select{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 8px;font-size:12px;font-family:inherit;outline:none;}
+#head select option{color:#111;}
+#head button{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 12px;font-size:12px;font-family:inherit;cursor:pointer;}
+#head button:hover{background:rgba(255,255,255,.25);}
+.dot{width:8px;height:8px;border-radius:50%;background:#94a3b8;display:inline-block;margin-right:5px;}
+.dot.on{background:#34d399;box-shadow:0 0 0 0 rgba(52,211,153,.6);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.6);}70%{box-shadow:0 0 0 7px rgba(52,211,153,0);}100%{box-shadow:0 0 0 0 rgba(52,211,153,0);}}
+
+/* API key bar */
+#keybar{display:flex;align-items:center;gap:10px;padding:9px 22px;background:#0f1b33;color:#c7d7fb;font-size:12.5px;border-top:1px solid rgba(255,255,255,.08);}
+#keybar label{white-space:nowrap;font-weight:700;color:#fff;}
+#keyInput{flex:1;min-width:0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:#fff;padding:6px 10px;font-size:13px;font-family:Consolas,monospace;outline:none;letter-spacing:.5px;}
+#keyInput::placeholder{color:rgba(255,255,255,.4);letter-spacing:0;font-family:inherit;}
+#keyInput:focus{border-color:#60a5fa;}
+#keyInput.masked{color:#86efac;letter-spacing:3px;background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.45);}
+#keyBtn{background:#2563eb;color:#fff;border:none;border-radius:8px;padding:6px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+#keyBtn:hover{background:#1d4ed8;}
+#keyBtn:disabled{background:#475569;cursor:wait;}
+#keyMsg{font-size:12px;white-space:nowrap;}
+#keyMsg.ok{color:#86efac;} #keyMsg.err{color:#fca5a5;}
+
+/* stat bar */
+#stat{padding:8px 22px;background:var(--g50);border-bottom:1px solid var(--g200);display:flex;align-items:center;gap:18px;font-size:12px;color:var(--g500);}
+#stat b{color:var(--g800);font-size:13px;}
+#stat .grow{flex:1;}
+#stat button{border:1px solid var(--g300);background:#fff;border-radius:7px;padding:3px 10px;font-size:12px;cursor:pointer;color:var(--g600);font-family:inherit;}
+#stat button:hover{background:var(--g100);}
+#journal{display:none;padding:10px 22px;background:#fffdf5;border-bottom:1px solid var(--warning-light);font-size:12px;max-height:190px;overflow:auto;}
+#journal.open{display:block;}
+#journal .jrow{padding:4px 0;border-bottom:1px dashed var(--g200);display:flex;gap:10px;}
+#journal .jn{color:var(--g400);width:22px;flex-shrink:0;}
+#journal .ja{font-weight:800;color:var(--warning);flex:0 0 auto;font-family:Consolas,monospace;}
+#journal .jg{font-family:Consolas,monospace;color:var(--g600);word-break:break-all;flex:1;min-width:0;}
+
+/* messages */
+#msgs{flex:1;overflow-y:auto;padding:22px;background:#f5f6f8;scroll-behavior:smooth;}
+.row{display:flex;margin-bottom:16px;gap:10px;}
+.row.user{justify-content:flex-end;}
+.avatar{width:34px;height:34px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;}
+.avatar.ai{background:var(--primary);color:#fff;}
+.avatar.me{background:var(--g700);color:#fff;}
+.bubble{max-width:82%;padding:13px 16px;border-radius:14px;font-size:14px;line-height:1.7;box-shadow:0 1px 2px rgba(0,0,0,.06);min-width:0;}
+.row.ai .bubble{background:#fff;border:1px solid var(--g200);border-top-left-radius:4px;flex:1;max-width:calc(100% - 44px);}
+.row.user .bubble{background:var(--primary);color:#fff;border-top-right-radius:4px;white-space:pre-wrap;}
+.bubble p{margin:0 0 6px;}
+.bubble p:last-child{margin-bottom:0;}
+.bubble strong{color:var(--g900);}
+.narr{color:var(--g600);font-size:13px;}
+
+/* ReAct step blocks */
+.step{margin:10px 0;border-radius:10px;overflow:hidden;font-size:13px;}
+.step:first-child{margin-top:4px;}
+.step-head{display:flex;align-items:center;gap:7px;padding:7px 12px;font-weight:700;font-size:12px;letter-spacing:.3px;}
+.step-head .sub{font-weight:500;opacity:.75;font-family:Consolas,monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.step.thought .step-head{background:var(--purple-light);color:var(--purple);}
+.step.action  .step-head{background:#1e293b;color:#cbd5e1;}
+.step.observe .step-head{background:var(--accent-light);color:var(--accent);}
+.step.observe.bad .step-head{background:var(--danger-light);color:var(--danger);}
+.step.plan    .step-head{background:var(--primary-light);color:var(--primary);}
+.step.thought{background:#faf7ff;border:1px solid var(--purple-light);}
+.step.observe{background:#f4fbf7;border:1px solid var(--accent-light);}
+.step.observe.bad{background:#fff7f7;border-color:var(--danger-light);}
+.step.plan{background:#f7f9fe;border:1px solid var(--primary-light);}
+.step.thought .step-body,.step.observe .step-body,.step.plan .step-body{padding:9px 13px;color:var(--g700);line-height:1.7;}
+.step.thought .step-body{max-height:150px;overflow:auto;white-space:pre-wrap;color:var(--g600);font-size:12.5px;}
+.step.observe .step-body{max-height:230px;overflow:auto;white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px;color:var(--g700);}
+.step.err{background:#fff7f7;border:1px solid var(--danger-light);}
+.step.err .step-head{background:var(--danger-light);color:var(--danger);}
+.step.err .step-body{padding:9px 13px;color:var(--danger);white-space:pre-wrap;}
+.code{background:#0f172a;color:#e2e8f0;font-family:Consolas,"SF Mono",Menlo,monospace;font-size:12.5px;line-height:1.65;padding:11px 14px;overflow:auto;white-space:pre;max-height:260px;}
+.code .pmt{color:#38bdf8;}
+details.fold>summary{cursor:pointer;list-style:none;}
+details.fold>summary::-webkit-details-marker{display:none;}
+details.fold>summary::after{content:"展开 ▾";margin-left:auto;font-size:11px;opacity:.7;font-weight:500;}
+details.fold[open]>summary::after{content:"收起 ▴";}
+
+/* plan checklist */
+.plist{list-style:none;}
+.plist li{display:flex;align-items:flex-start;gap:8px;padding:3px 0;}
+.pmark{width:17px;height:17px;border-radius:5px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:1px;}
+.pmark.done{background:var(--accent);color:#fff;}
+.pmark.doing{background:var(--warning);color:#fff;}
+.pmark.todo{background:var(--g200);color:var(--g400);}
+.plist li.done span{color:var(--g500);text-decoration:line-through;}
+
+/* answer cards (what the customer actually sees) */
+.answer{margin-top:12px;border:1.5px solid var(--primary);border-radius:12px;overflow:hidden;background:#fff;}
+.answer-head{background:var(--primary);color:#fff;padding:7px 14px;font-size:12px;font-weight:800;letter-spacing:.4px;}
+.acard{padding:12px 16px;border-top:1px solid var(--g100);font-size:14px;line-height:1.75;}
+.acard:first-of-type{border-top:none;}
+.acard .ctitle{font-weight:800;color:var(--g900);margin-bottom:4px;}
+.acard ul,.acard ol{margin:4px 0 4px 20px;}
+.acard code{background:var(--g100);padding:1px 5px;border-radius:4px;font-family:Consolas,monospace;font-size:12.5px;}
+.cap{font-size:12px;color:var(--g500);margin-top:6px;}
+.otable{width:100%;border-collapse:collapse;font-size:12px;}
+.tscroll{overflow:auto;max-height:300px;border:1px solid var(--g200);border-radius:8px;}
+.otable th{background:var(--g100);color:var(--g700);padding:6px 9px;text-align:left;font-weight:700;border-bottom:2px solid var(--g200);font-size:11.5px;position:sticky;top:0;white-space:nowrap;}
+.otable td{padding:6px 9px;border-bottom:1px solid var(--g100);vertical-align:top;}
+.acard iframe{width:100%;height:340px;border:1px solid var(--g200);border-radius:8px;}
+.acard img{max-width:100%;border-radius:8px;}
+
+/* clarification */
+.qcard{margin-top:12px;border:1.5px solid var(--warning);border-radius:12px;background:#fffdf5;overflow:hidden;}
+.qcard .qhead{background:var(--warning);color:#fff;padding:7px 14px;font-size:12px;font-weight:800;}
+.qcard .qbody{padding:12px 16px;font-size:14px;}
+.qcard .qpre{margin-bottom:8px;color:var(--g700);}
+.qcard .q{margin:10px 0;}
+.qcard .qt{font-weight:700;color:var(--g900);}
+.qcard .qc{font-size:12px;color:var(--g500);margin-top:2px;}
+.qopts{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;}
+.qopt{border:1px solid var(--warning);color:var(--warning);background:#fff;border-radius:16px;padding:5px 13px;font-size:12.5px;cursor:pointer;font-weight:600;font-family:inherit;}
+.qopt:hover{background:var(--warning-light);}
+.qopt.sel{background:var(--warning);color:#fff;}
+.qsubmit{margin-top:6px;background:var(--warning);color:#fff;border:none;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+.sysnote{text-align:center;color:var(--g400);font-size:12px;margin:6px 0 16px;}
+
+/* typing */
+.typing{display:flex;gap:4px;padding:6px 2px;}
+.typing span{width:7px;height:7px;border-radius:50%;background:var(--g400);animation:bounce 1.2s infinite;}
+.typing span:nth-child(2){animation-delay:.18s;}
+.typing span:nth-child(3){animation-delay:.36s;}
+@keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.5;}30%{transform:translateY(-5px);opacity:1;}}
+
+/* quick queries */
+#chips{display:flex;gap:8px;flex-wrap:wrap;padding:8px 22px 6px;background:#f5f6f8;border-top:1px solid var(--g200);}
+#chips .lb{font-size:12px;color:var(--g500);align-self:center;}
+.chip{border:1px solid var(--primary);color:var(--primary);background:#fff;border-radius:18px;padding:6px 13px;font-size:12.5px;cursor:pointer;font-weight:600;transition:all .15s;font-family:inherit;}
+.chip:hover{background:var(--primary-light);}
+
+/* input */
+#input{display:flex;gap:10px;padding:12px 22px 16px;background:#fff;border-top:1px solid var(--g200);align-items:flex-end;}
+#input textarea{flex:1;resize:none;border:1.5px solid var(--g300);border-radius:12px;padding:11px 14px;font-size:14px;font-family:inherit;line-height:1.5;max-height:130px;outline:none;transition:border .15s;}
+#input textarea:focus{border-color:var(--primary);}
+#send{background:var(--primary);color:#fff;border:none;border-radius:12px;width:46px;height:46px;font-size:19px;cursor:pointer;flex-shrink:0;transition:background .15s;}
+#send:hover{background:#1444b0;}
+#send:disabled{background:var(--g300);cursor:not-allowed;}
+::-webkit-scrollbar{width:8px;height:8px;}
+::-webkit-scrollbar-thumb{background:var(--g300);border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="chat">
+  <div id="head">
+    <div class="logo">🛍️</div>
+    <div style="flex:1">
+      <div class="h-title">零售客服 Agent · 智能销售服务系统</div>
+      <div class="h-sub">PlanexAgent &nbsp;|&nbsp; retail-skill &nbsp;|&nbsp; DeepSeek &nbsp;|&nbsp; 示例数据：500 用户 · 1000 订单 · 50 类商品</div>
+    </div>
+    <select id="model" title="模型"></select>
+    <div style="font-size:12px;white-space:nowrap"><span class="dot" id="dot"></span><span id="dotTxt">未配置</span></div>
+    <button id="newBtn" title="丢弃当前会话与业务数据的改动，重新开始">新会话</button>
+  </div>
+
+  <div id="keybar">
+    <label for="keyInput">DeepSeek API Key</label>
+    <input id="keyInput" type="password" autocomplete="off" spellcheck="false" placeholder="输入 API Key（sk-…），保存后仅显示 ****">
+    <button id="keyBtn">保存</button>
+    <span id="keyMsg"></span>
+  </div>
+
+  <div id="stat">
+    <span>会话 <b id="sSid">–</b></span>
+    <span>轮次 <b id="sTurns">0</b></span>
+    <span>工具调用 <b id="sTools">0</b></span>
+    <span>写操作 <b id="sWrites">0</b></span>
+    <span class="grow"></span>
+    <button id="jBtn">数据变更流水 ▾</button>
+  </div>
+  <div id="journal"></div>
+
+  <div id="msgs"></div>
+
+  <div id="chips"></div>
+  <div id="input">
+    <textarea id="ta" rows="1" placeholder="以顾客的口吻提问，例如：Hi, I'm Yusuf Rossi, zip code 19122 …"></textarea>
+    <button id="send" title="发送">➤</button>
+  </div>
+</div>
+
+<script>
+/* ============ 状态 ============ */
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2, 12)));
+let clientId = localStorage.getItem('retail_client_id');
+if (!clientId) { clientId = uid(); localStorage.setItem('retail_client_id', clientId); }
+let sessionId = uid();
+let configured = false, busy = false, pendingClarify = false, turns = 0, tools = 0, ctrl = null;
+
+const $ = id => document.getElementById(id);
+const msgs = $('msgs'), ta = $('ta'), sendBtn = $('send');
+const scrollDown = () => { msgs.scrollTop = msgs.scrollHeight; };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function el(tag, cls, html) { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+
+/* ============ 快捷提问（顾客口吻的示例开场白） ============ */
+const SAMPLES = [
+  ['🔍 查商品数量', "Hi, I'm Yusuf Rossi, zip code 19122. Can you tell me how many t-shirt options are available in the online store right now?"],
+  ['📦 查待发货订单', "Hi, I'm Yusuf Rossi, zip code 19122. Which of my orders are still pending, and what is in each of them?"],
+  ['🔁 换货：台灯', "Hi! I'd like some help with an exchange from my recent order. I don't remember which email I used, but my name is Mei Kovacs and my zip code is 28236. From order #W6390527, I only want to exchange the desk lamp for a brighter model, not the water bottle—preferably battery-powered if available, then USB, then AC."],
+  ['↩️ 退货 3 件', "Hi, I'm Yusuf Rossi, zip code 19122. Two things: first, how many t-shirt options do you have in the online store right now? Second, I'd like to return the cleaner, the headphones and the smart watch from one of my orders."],
+  ['✏️ 改待发货商品', "Hi, I'm Fatima Johnson, zip code 78712. I'd like to modify my pending boots to a size 8. I want to keep the same material, and I don't mind whether they're waterproof or not. Any price difference can go on my PayPal."],
+  ['🙋 办不到→转人工', "Hi, this is mia_garcia_4516, mia.garcia2723@example.com. I want to return everything I've ordered. I have two orders and two payment methods, and I'd like each order refunded to the other order's payment method. If that isn't possible, please just transfer me to a human representative."],
+];
+(function initChips() {
+  const c = $('chips'); c.appendChild(el('span', 'lb', '试试：'));
+  SAMPLES.forEach(([label, text]) => {
+    const b = el('button', 'chip', esc(label)); b.title = text;
+    b.onclick = () => { ta.value = text; autosize(); ta.focus(); };
+    c.appendChild(b);
+  });
+})();
+
+/* ============ API Key ============ */
+function setKeyUI(on, note) {
+  configured = on;
+  const inp = $('keyInput');
+  $('dot').className = 'dot' + (on ? ' on' : ''); $('dotTxt').textContent = on ? '已连接' : '未配置';
+  if (on) {
+    inp.type = 'text'; inp.value = '****'; inp.readOnly = true; inp.classList.add('masked');
+    $('keyBtn').textContent = '更换';
+  } else {
+    inp.type = 'password'; inp.value = ''; inp.readOnly = false; inp.classList.remove('masked');
+    $('keyBtn').textContent = '保存';
+  }
+  if (note) { const m = $('keyMsg'); m.textContent = note.text; m.className = note.cls; }
+  refreshSend();
+}
+$('keyBtn').onclick = async () => {
+  const inp = $('keyInput');
+  if (configured) { setKeyUI(false); inp.focus(); $('keyMsg').textContent = ''; return; }   // “更换”
+  const key = inp.value.trim();
+  if (!key) { $('keyMsg').textContent = '请先输入 API Key'; $('keyMsg').className = 'err'; return; }
+  $('keyBtn').disabled = true; $('keyMsg').textContent = '校验中…'; $('keyMsg').className = '';
+  try {
+    const r = await fetch('/api/key', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, api_key: key }) });
+    const j = await r.json().catch(() => ({}));
+    inp.value = '';                                   // 不论成败，明文立刻清掉
+    if (r.ok && j.ok) setKeyUI(true, { text: '已保存（仅存服务端内存）', cls: 'ok' });
+    else { setKeyUI(false, { text: j.message || j.detail || '保存失败', cls: 'err' }); }
+  } catch (e) { inp.value = ''; setKeyUI(false, { text: '网络错误', cls: 'err' }); }
+  $('keyBtn').disabled = false;
+};
+$('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('keyBtn').click(); });
+
+/* ============ 输入 ============ */
+function autosize() { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 130) + 'px'; }
+ta.addEventListener('input', autosize);
+ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+sendBtn.onclick = () => send();
+function refreshSend() { sendBtn.disabled = busy || !configured; ta.disabled = false; }
+
+/* ============ 渲染工具 ============ */
+function userBubble(text) {
+  const r = el('div', 'row user'); r.innerHTML = `<div class="bubble">${esc(text)}</div><div class="avatar me">我</div>`;
+  msgs.appendChild(r); scrollDown();
+}
+function aiBubble() {
+  const r = el('div', 'row ai'); r.innerHTML = `<div class="avatar ai">客</div><div class="bubble"></div>`;
+  msgs.appendChild(r); scrollDown(); return r.querySelector('.bubble');
+}
+function sysNote(t) { msgs.appendChild(el('div', 'sysnote', esc(t))); scrollDown(); }
+
+/* 极简 markdown：加粗 / 行内代码 / 列表 / 换行（先转义，再加标记） */
+function md(text) {
+  const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+  const out = []; let list = null;
+  const flush = () => { if (list) { out.push(`</${list}>`); list = null; } };
+  for (const line of String(text).split('\n')) {
+    const ul = /^\s*[-*•]\s+(.*)/.exec(line), ol = /^\s*\d+[.)]\s+(.*)/.exec(line);
+    if (ul || ol) {
+      const t = ul ? 'ul' : 'ol';
+      if (list !== t) { flush(); out.push(`<${t}>`); list = t; }
+      out.push(`<li>${inline((ul || ol)[1])}</li>`);
+    } else { flush(); out.push(line.trim() ? `<div>${inline(line)}</div>` : '<div style="height:6px"></div>'); }
+  }
+  flush(); return out.join('');
+}
+
+const TOOL_LABEL = {
+  read_file: ['📖', '读取文件'], write_file: ['📝', '写入脚本'], edit_file: ['📝', '修改文件'],
+  execute: ['⚡', '执行命令'], ls: ['📂', '列目录'], glob: ['🔎', '查找文件'], grep: ['🔎', '检索内容'],
+  task: ['🧩', '子任务'], ask_clarification: ['❓', '向顾客澄清'],
+};
+const isCardTool = n => /_card$/.test(n || '');
+
+function unwrapResult(raw) {           // tool_result.result 是一段 JSON：{"content": "...", ...}
+  try { const j = JSON.parse(raw); if (j && typeof j.content === 'string') return j.content; } catch (e) {}
+  return String(raw ?? '');
+}
+
+/* 一轮 AI 回复的渲染状态机：reasoning→思考卡；content→叙述；tool_call→命令卡；tool_result→观测卡；card→答案卡 */
+class Turn {
+  constructor(bubble) {
+    this.b = bubble; this.cur = null; this.calls = new Map(); this.answer = null; this.plan = null;
+    this.typing = el('div', 'typing', '<span></span><span></span><span></span>'); this.b.appendChild(this.typing);
+  }
+  _add(node) { this.b.insertBefore(node, this.answer || this.typing); scrollDown(); return node; }
+  reasoning(t) {
+    if (!this.cur || this.cur.kind !== 'r') {
+      const s = el('div', 'step thought', `<div class="step-head">🧠 思考</div><div class="step-body"></div>`);
+      this._add(s); this.cur = { kind: 'r', body: s.querySelector('.step-body') };
+    }
+    this.cur.body.textContent += t; this.cur.body.scrollTop = this.cur.body.scrollHeight; scrollDown();
+  }
+  content(t) {
+    if (!this.cur || this.cur.kind !== 'c') {
+      const p = el('p', 'narr'); this._add(p); this.cur = { kind: 'c', node: p, text: '' };
+    }
+    this.cur.text += t; this.cur.node.textContent = this.cur.text; scrollDown();
+  }
+  toolCall(d) {
+    this.cur = null;
+    const name = d.tool_name, a = d.tool_args || {};
+    if (isCardTool(name)) return;
+    if (name === 'write_todos') return this.todos(a.todos || []);
+    tools++; $('sTools').textContent = tools;
+    const [ic, lb] = TOOL_LABEL[name] || ['🔧', name];
+    let sub = '', body = '';
+    if (name === 'execute') body = `<div class="code"><span class="pmt">$</span> ${esc(a.command || '')}</div>`;
+    else if (name === 'write_file') {
+      sub = a.file_path || ''; const c = a.content || '';
+      body = `<details class="fold"><summary class="step-head" style="background:#1e293b;color:#cbd5e1;padding-top:0;padding-bottom:7px;font-weight:500;font-size:11.5px">脚本内容（${c.split('\n').length} 行）</summary><div class="code">${esc(c)}</div></details>`;
+    } else if (name === 'read_file') sub = a.file_path || '';
+    else body = `<div class="code">${esc(JSON.stringify(a, null, 2))}</div>`;
+    const s = el('div', 'step action', `<div class="step-head">${ic} ${esc(lb)} <span class="sub">${esc(sub)}</span></div>${body}`);
+    this._add(s); if (d.tool_id) this.calls.set(d.tool_id, { node: s, name });
+  }
+  toolResult(d) {
+    if (isCardTool(d.tool_name)) return;
+    if (d.tool_name === 'write_todos') return;
+    const text = unwrapResult(d.result);
+    const codes = [...text.matchAll(/Exit code: (\d+)/g)];
+    const bad = d.status === 'error' || (codes.length && codes[codes.length - 1][1] !== '0');
+    const brief = d.tool_name === 'write_file' ? '' : text;
+    const s = el('div', 'step observe' + (bad ? ' bad' : ''),
+      `<div class="step-head">${bad ? '⚠️ 执行出错' : '📊 观测结果'}${d.truncated ? ' <span class="sub">（已截断）</span>' : ''}</div>` +
+      (brief ? `<div class="step-body">${esc(brief.length > 4000 ? brief.slice(0, 4000) + '\n…' : brief)}</div>` : ''));
+    const call = this.calls.get(d.tool_id);
+    if (call) call.node.after(s); else this._add(s);
+    if (d.tool_name === 'write_file') s.style.display = 'none';       // 写脚本的“成功”回执没有信息量，不占版面
+    scrollDown();
+  }
+  todos(items) {
+    const lis = items.map(t => {
+      const st = t.status === 'completed' ? 'done' : t.status === 'in_progress' ? 'doing' : 'todo';
+      const mk = st === 'done' ? '✓' : st === 'doing' ? '…' : '';
+      return `<li class="${st === 'done' ? 'done' : ''}"><span class="pmark ${st}">${mk}</span><span>${esc(t.content || t.activeForm || '')}</span></li>`;
+    }).join('');
+    const html = `<div class="step-head">📋 调查计划</div><div class="step-body"><ul class="plist">${lis}</ul></div>`;
+    if (this.plan) this.plan.innerHTML = html; else { this.plan = el('div', 'step plan', html); this._add(this.plan); }
+  }
+  card(d) {
+    if (d.lane === 'clarification') return;
+    this.cur = null;
+    if (!this.answer) {
+      this.answer = el('div', 'answer', '<div class="answer-head">💬 回复顾客</div>');
+      this.b.insertBefore(this.answer, this.typing);
+    }
+    renderCard(this.answer, d.card || {});
+    scrollDown();
+  }
+  clarification(d) {
+    this.cur = null; pendingClarify = true;
+    const card = d.card || {}, box = el('div', 'qcard', '<div class="qhead">❓ Agent 需要向顾客确认</div>');
+    const body = el('div', 'qbody'); box.appendChild(body);
+    if (card.preface) body.appendChild(el('div', 'qpre', esc(card.preface)));
+    const picks = {}, qs = card.questions || [];
+    qs.forEach((q, i) => {
+      const qd = el('div', 'q', `<div class="qt">${esc(q.question || q.prompt || '')}</div>` + (q.context ? `<div class="qc">${esc(q.context)}</div>` : ''));
+      const opts = el('div', 'qopts');
+      (q.options || []).forEach(o => {
+        const label = o.label || o.value || '';
+        const b = el('button', 'qopt', esc(label) + (o.recommended ? ' ★' : ''));
+        b.onclick = () => {
+          picks[i] = label; opts.querySelectorAll('.qopt').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+          if (qs.length === 1) submit();
+        };
+        opts.appendChild(b);
+      });
+      if ((q.interaction === 'fill') || !(q.options || []).length) qd.appendChild(el('div', 'qc', '请在下方输入框直接回答'));
+      qd.appendChild(opts); body.appendChild(qd);
+    });
+    const submit = () => {
+      const text = qs.length === 1 ? picks[0] : qs.map((q, i) => `${q.question || ''} ${picks[i] || ''}`.trim()).join('\n');
+      if (text) send(text);
+    };
+    if (qs.length > 1) { const s = el('button', 'qsubmit', '提交回答'); s.onclick = submit; body.appendChild(s); }
+    this._add(box);
+  }
+  error(d) {
+    this.cur = null;
+    this._add(el('div', 'step err', `<div class="step-head">✖ 出错了</div><div class="step-body">${esc(d.message || d.reason || '未知错误')}</div>`));
+  }
+  planChange(d) { this._add(el('p', 'narr', '↻ 调整计划：' + esc(d.reason || ''))); }
+  finish() { this.typing.remove(); }
+}
+
+function renderCard(host, card) {
+  const t = card.type, p = card.payload || {};
+  const box = el('div', 'acard'); host.appendChild(box);
+  if (t === 'plaintext') {
+    box.innerHTML = (p.title ? `<div class="ctitle">${esc(p.title)}</div>` : '') + md(p.text || '');
+  } else if (t === 'dataframe') {
+    box.innerHTML = '<div class="cap">加载表格…</div>';
+    fetch(`/api/table?session_id=${sessionId}&path=${encodeURIComponent(p.file_path)}`).then(r => r.json()).then(j => {
+      const head = (j.columns || []).map(c => `<th>${esc(c)}</th>`).join('');
+      const rows = (j.rows || []).map(r => `<tr>${r.map(v => `<td>${esc(v)}</td>`).join('')}</tr>`).join('');
+      box.innerHTML = `<div class="tscroll"><table class="otable"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>` +
+        (p.caption ? `<div class="cap">${esc(p.caption)}${j.total > 500 ? `（仅显示前 500 / ${j.total} 行）` : ''}</div>` : '');
+      scrollDown();
+    }).catch(() => { box.innerHTML = `<div class="cap">表格读取失败：${esc(p.file_path)}</div>`; });
+  } else if (t === 'figure') {
+    const url = `/api/file?session_id=${sessionId}&path=${encodeURIComponent(p.file_path)}`;
+    box.innerHTML = (/\.(png|jpe?g|gif|svg|webp)$/i.test(p.file_path)
+      ? `<img src="${url}" alt="">` : `<iframe src="${url}" sandbox="allow-scripts"></iframe>`) +
+      (p.caption ? `<div class="cap">${esc(p.caption)}</div>` : '');
+  } else { box.innerHTML = `<div class="cap">${esc(JSON.stringify(card))}</div>`; }
+}
+
+/* ============ 发送 & 读 SSE ============ */
+async function send(override) {
+  const text = (override ?? ta.value).trim();
+  if (!text || busy || !configured) return;
+  const resume = pendingClarify; pendingClarify = false;
+  if (override == null) { ta.value = ''; autosize(); }
+  userBubble(text); busy = true; refreshSend(); turns++; $('sTurns').textContent = turns;
+  const turn = new Turn(aiBubble());
+  ctrl = new AbortController();
+  try {
+    const r = await fetch('/api/chat', { method: 'POST', signal: ctrl.signal, headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ client_id: clientId, session_id: sessionId, message: text, model: $('model').value, resume }) });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 401) setKeyUI(false, { text: '请先保存 API Key', cls: 'err' });
+      turn.error({ message: j.detail || j.message || `HTTP ${r.status}` });
+    } else {
+      const reader = r.body.getReader(), dec = new TextDecoder(); let buf = '';
+      for (;;) {
+        const { value, done } = await reader.read(); if (done) break;
+        buf += dec.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+        let i; while ((i = buf.indexOf('\n\n')) >= 0) { handle(turn, buf.slice(0, i)); buf = buf.slice(i + 2); }
+      }
+    }
+  } catch (e) { if (e.name !== 'AbortError') turn.error({ message: '连接中断：' + e.message }); }
+  turn.finish(); busy = false; refreshSend(); ctrl = null; ta.focus();
+}
+function handle(turn, block) {
+  let ev = 'message', data = '';
+  for (const line of block.split('\n')) {
+    if (line.startsWith('event:')) ev = line.slice(6).trim();
+    else if (line.startsWith('data:')) data += line.slice(5).trim();
+  }
+  if (!data) return;
+  let d; try { d = JSON.parse(data); } catch (e) { return; }
+  switch (ev) {
+    case 'reasoning': turn.reasoning(d.text || ''); break;
+    case 'content': turn.content(d.text || ''); break;
+    case 'tool_call': turn.toolCall(d); break;
+    case 'tool_result': turn.toolResult(d); break;
+    case 'card': turn.card(d); break;
+    case 'clarification': turn.clarification(d); break;
+    case 'plan_change': turn.planChange(d); break;
+    case 'error': turn.error(d); break;
+    case 'state': renderJournal(d.journal || []); break;
+    default: break;            // heartbeat / complete
+  }
+}
+
+/* ============ 写操作流水 ============ */
+function renderJournal(j) {
+  $('sWrites').textContent = j.length;
+  $('journal').innerHTML = j.length
+    ? j.map((x, i) => `<div class="jrow"><span class="jn">${i + 1}</span><span class="ja">${esc(x.action)}</span><span class="jg">${esc(JSON.stringify(x.args))}</span></div>`).join('')
+    : '<div style="color:#9ca3af">本会话还没有发生写操作（取消 / 修改 / 退货 / 换货 / 改地址 / 转人工）。</div>';
+}
+$('jBtn').onclick = () => { const o = $('journal').classList.toggle('open'); $('jBtn').textContent = '数据变更流水 ' + (o ? '▴' : '▾'); };
+
+/* ============ 新会话 ============ */
+async function newSession(first) {
+  if (ctrl) ctrl.abort();
+  if (!first) fetch('/api/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) }).catch(() => {});
+  sessionId = uid(); turns = 0; tools = 0; pendingClarify = false; busy = false;
+  $('sSid').textContent = sessionId.slice(0, 8); $('sTurns').textContent = 0; $('sTools').textContent = 0; renderJournal([]);
+  msgs.innerHTML = '';
+  const b = aiBubble();
+  b.innerHTML = '<p>你好，我是<strong>零售客服 Agent</strong>。我基于示例的顾客、订单与商品数据，可以帮顾客：<strong>取消 / 修改待发货订单、退货 / 换货、修改地址、查询订单与商品</strong>。</p>' +
+    '<p class="narr" style="margin-top:8px">先在上方保存 DeepSeek API Key，再以顾客的口吻提问（点下方“试试”可填入示例）。你会看到 Agent 的完整过程：思考 → 读取技能 / 执行脚本 → 观测结果 → 回复顾客；写操作必须经顾客明确确认，并记录在“数据变更流水”里。</p>';
+  refreshSend();
+}
+$('newBtn').onclick = () => newSession(false);
+
+/* ============ 启动 ============ */
+(async function boot() {
+  try {
+    const c = await (await fetch('/api/config')).json();
+    const sel = $('model'); c.models.forEach(m => { const o = el('option', '', m); o.value = m; sel.appendChild(o); }); sel.value = c.default_model;
+  } catch (e) {}
+  try {
+    const s = await (await fetch('/api/key/status?client_id=' + clientId)).json();
+    setKeyUI(!!s.configured, s.configured ? { text: '已保存（仅存服务端内存）', cls: 'ok' } : null);
+  } catch (e) { setKeyUI(false); }
+  await newSession(true);
+})();
+</script>
+</body>
+</html>

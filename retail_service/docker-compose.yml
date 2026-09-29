@@ -1,0 +1,20 @@
+# 零售客服 Agent 容器部署。
+#   docker compose up -d --build         # 默认映射宿主机 18100 -> 容器 8000
+#   RETAIL_PORT=18101 docker compose up -d --build
+#
+# 不含任何密钥：DeepSeek API Key 在页面里输入，只存服务进程内存。
+services:
+  retail-agent:
+    build: .
+    image: retail-agent:local
+    container_name: retail-agent
+    ports:
+      - "${RETAIL_PORT:-18100}:8000"
+    environment:
+      DEEPSEEK_BASE_URL: "${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}"
+    volumes:
+      - retail_sessions:/app/sessions      # 会话工作目录（重建容器后保留）
+    restart: unless-stopped
+
+volumes:
+  retail_sessions:
